@@ -6,20 +6,27 @@ import time
 import schedule
 import os
 
-# Replace with your OpenWeatherMap API key
+# OpenWeatherMap API key
 WEATHER_API_KEY = "YOUR_API_KEY_HERE"
-# Replace with your gym's latitude and longitude
-GYM_LAT = "49.7240836"
-GYM_LON = "-123.1526125"
 
-def get_capacity():
-    url = "https://portal.rockgympro.com/portal/public/a9c7d8e770832d2ce2a1a5b371f95dfb/occupancy?&iframeid=occupancyCounter&fId="  # Make sure this is correct
+# Define gym configurations
+GYMS = [
+    {
+        'name': 'ClimbOn Squamish',
+        'url': 'https://portal.rockgympro.com/portal/public/a9c7d8e770832d2ce2a1a5b371f95dfb/occupancy?&iframeid=occupancyCounter&fId=',
+        'lat': '49.7240836',
+        'lon': '-123.1526125',
+        'parser': 'climbon'
+    },
+]
+
+def get_capacity_climbon(url):
     print(f"Fetching data from {url}")
     response = requests.get(url)
     print(f"Response status code: {response.status_code}")
-    
+
     data_match = re.search(r'var data = (\{[^;]+\});', response.text)
-    
+
     if data_match:
         data_str = data_match.group(1)
         print(f"Found data: {data_str}")
@@ -33,56 +40,74 @@ def get_capacity():
             return count, capacity
 
     print("Could not extract capacity data from the webpage")
-    raise ValueError("Could not extract capacity data from the webpage")
+    return None, None
 
-def get_weather():
-    url = f"http://api.openweathermap.org/data/2.5/weather?lat={GYM_LAT}&lon={GYM_LON}&appid={WEATHER_API_KEY}&units=metric"
-    response = requests.get(url)
-    data = response.json()
+def get_weather(lat, lon):
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={WEATHER_API_KEY}&units=metric"
+    try:
+        print(f"Fetching weather data from: {url}")
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
 
-    if response.status_code == 200:
+        print(f"Weather API response: {data}")
+
         weather_main = data['weather'][0]['main']
         temperature = data['main']['temp']
+        print(f"Extracted weather: {weather_main}, temperature: {temperature}°C")
         return weather_main, temperature
-    else:
-        print(f"Error fetching weather data: {response.status_code}")
+    except Exception as e:
+        print(f"Error getting weather data: {e}")
         return None, None
 
 def update_excel():
     print("Updating Excel file...")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     try:
-        count, capacity = get_capacity()
-        weather_main, temperature = get_weather()
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        try:
-            df = pd.read_excel('gym_capacity_weather.xlsx')
-            print("Existing Excel file found")
-        except FileNotFoundError:
-            print("Creating new Excel file")
-            df = pd.DataFrame(columns=['Timestamp', 'Count', 'Capacity', 'Weather', 'Temperature'])
+        df = pd.read_excel('multi_gym_capacity_weather.xlsx')
+        print("Existing Excel file found")
+    except FileNotFoundError:
+        print("Creating new Excel file")
+        df = pd.DataFrame(columns=['Timestamp', 'Gym', 'Count', 'Capacity', 'Weather', 'Temperature'])
+
+    for gym in GYMS:
+        print(f"Processing gym: {gym['name']}")
+
+        # Get capacity data
+        if gym['parser'] == 'climbon':
+            count, capacity = get_capacity_climbon(gym['url'])
+        # elif gym['parser'] == 'another_parser':
+        #     count, capacity = get_capacity_another_parser(gym['url'])
+        else:
+            print(f"Unknown parser for gym: {gym['name']}")
+            continue
+
+        # Get weather data
+        weather_main, temperature = get_weather(gym['lat'], gym['lon'])
         
         new_row = pd.DataFrame({
             'Timestamp': [timestamp],
+            'Gym': [gym['name']],
             'Count': [count],
             'Capacity': [capacity],
             'Weather': [weather_main],
             'Temperature': [temperature]
         })
         df = pd.concat([df, new_row], ignore_index=True)
-        
-        df.to_excel('gym_capacity_weather.xlsx', index=False)
-        print(f"Updated at {timestamp}: Count = {count}, Capacity = {capacity}, Weather = {weather_main}, Temp = {temperature}°C")
-    except Exception as e:
-        print(f"Error updating data: {e}")
+
+        print(f"Updated at {timestamp} for {gym['name']}: Count = {count}, Capacity = {capacity}, Weather = {weather_main}, Temp = {temperature}°C")
+
+    df.to_excel('multi_gym_capacity_weather.xlsx', index=False)
+    print("Excel file updated successfully")
 
 def main():
-    print("Starting the gym capacity and weather tracker...")
+    print("Starting the multi-gym capacity and weather tracker...")
     schedule.every().hour.do(update_excel)
     print("Scheduled to update every hour")
-    
+
     update_excel()  # Run once immediately
-    
+
     while True:
         schedule.run_pending()
         time.sleep(1)
