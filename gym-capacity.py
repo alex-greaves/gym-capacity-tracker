@@ -103,8 +103,8 @@ def update_excel():
 
 def main():
     print("Starting the multi-gym capacity and weather tracker...")
-    schedule.every().hour.do(update_excel)
-    print("Scheduled to update every hour")
+    schedule.every(30).minutes.do(update_excel)
+    print("Scheduled to update every 30 minutes")
 
     update_excel()  # Run once immediately
 
