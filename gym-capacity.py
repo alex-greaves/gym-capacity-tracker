@@ -5,9 +5,14 @@ from datetime import datetime
 import time
 import schedule
 import os
+import configparser
+
+# Read config file
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 # OpenWeatherMap API key
-WEATHER_API_KEY = "YOUR_API_KEY_HERE"
+WEATHER_API_KEY = config['API_KEYS']['OPENWEATHERMAP']
 
 # Define gym configurations
 GYMS = [
