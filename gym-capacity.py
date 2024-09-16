@@ -1,8 +1,8 @@
 import requests
 import re
 import pandas as pd
-from datetime import datetime
-import time
+from datetime import datetime, time
+import time as time_module
 import schedule
 import os
 import configparser
@@ -22,7 +22,9 @@ GYMS = [
         'lat': '49.7240836',
         'lon': '-123.1526125',
         'parser': 'groundup',
-        'type': 'rockgympro'
+        'type': 'rockgympro',
+        'open_time': time(6, 0),  # 6:00 AM PST
+        'close_time': time(22, 0)  # 10:00 PM PST
     },
 ]
 
@@ -66,6 +68,16 @@ def get_weather(lat, lon):
         print(f"Error getting weather data: {e}")
         return None, None
 
+def is_gym_open(gym):
+    if 'open_time' not in gym or 'close_time' not in gym:
+        return True  # Always consider the gym open if no times are specified
+
+    now = datetime.now().time()
+    if gym['open_time'] < gym['close_time']:
+        return gym['open_time'] <= now < gym['close_time']
+    else:  # Handles case where gym is open past midnight
+        return now >= gym['open_time'] or now < gym['close_time']
+
 def update_excel():
     print("Updating Excel file...")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -78,6 +90,10 @@ def update_excel():
         df = pd.DataFrame(columns=['Timestamp', 'Gym', 'Count', 'Capacity', 'Weather', 'Temperature'])
 
     for gym in GYMS:
+        if not is_gym_open(gym):
+            print(f"{gym['name']} is currently closed. Skipping update.")
+            continue
+
         print(f"Processing gym: {gym['name']}")
 
         # Get capacity data
@@ -116,7 +132,7 @@ def main():
 
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        time_module.sleep(1)
 
 if __name__ == "__main__":
     main()
