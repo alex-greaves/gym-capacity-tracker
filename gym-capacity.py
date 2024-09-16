@@ -9,8 +9,8 @@ import os
 # Replace with your OpenWeatherMap API key
 WEATHER_API_KEY = "YOUR_API_KEY_HERE"
 # Replace with your gym's latitude and longitude
-GYM_LAT = "37.7749"
-GYM_LON = "-122.4194"
+GYM_LAT = "49.7240836"
+GYM_LON = "-123.1526125"
 
 def get_capacity():
     url = "https://portal.rockgympro.com/portal/public/a9c7d8e770832d2ce2a1a5b371f95dfb/occupancy?&iframeid=occupancyCounter&fId="  # Make sure this is correct
