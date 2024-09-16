@@ -17,15 +17,16 @@ WEATHER_API_KEY = config['API_KEYS']['OPENWEATHERMAP']
 # Define gym configurations
 GYMS = [
     {
-        'name': 'ClimbOn Squamish',
+        'name': 'Ground Up Squamish',
         'url': 'https://portal.rockgympro.com/portal/public/a9c7d8e770832d2ce2a1a5b371f95dfb/occupancy?&iframeid=occupancyCounter&fId=',
         'lat': '49.7240836',
         'lon': '-123.1526125',
-        'parser': 'climbon'
+        'parser': 'groundup',
+        'type': 'rockgympro'
     },
 ]
 
-def get_capacity_climbon(url):
+def get_capacity_rockgympro(url):
     print(f"Fetching data from {url}")
     response = requests.get(url)
     print(f"Response status code: {response.status_code}")
@@ -80,8 +81,8 @@ def update_excel():
         print(f"Processing gym: {gym['name']}")
 
         # Get capacity data
-        if gym['parser'] == 'climbon':
-            count, capacity = get_capacity_climbon(gym['url'])
+        if gym['type'] == 'rockgympro':
+            count, capacity = get_capacity_rockgympro(gym['url'])
         # elif gym['parser'] == 'another_parser':
         #     count, capacity = get_capacity_another_parser(gym['url'])
         else:
