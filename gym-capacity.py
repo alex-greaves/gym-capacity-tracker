@@ -1,7 +1,7 @@
 import requests
 import re
 import pandas as pd
-from datetime import datetime, time
+from datetime import datetime, time, date
 import time as time_module
 import schedule
 import os
@@ -23,7 +23,7 @@ GYMS = [
         'lon': '-123.1526125',
         'parser': 'groundup',
         'type': 'rockgympro',
-        'open_time': time(6, 0),  # 6:00 AM PST
+        # 'open_time': time(6, 0),  # 6:00 AM PST
         'close_time': time(22, 0)  # 10:00 PM PST
     },
 ]
@@ -81,13 +81,14 @@ def is_gym_open(gym):
 def update_excel():
     print("Updating Excel file...")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    day = date.strftime(date.today(), "%A")
 
     try:
         df = pd.read_excel('multi_gym_capacity_weather.xlsx')
         print("Existing Excel file found")
     except FileNotFoundError:
         print("Creating new Excel file")
-        df = pd.DataFrame(columns=['Timestamp', 'Gym', 'Count', 'Capacity', 'Weather', 'Temperature'])
+        df = pd.DataFrame(columns=['Timestamp', 'Day', 'Gym', 'Count', 'Capacity', 'Weather', 'Temperature'])
 
     for gym in GYMS:
         if not is_gym_open(gym):
@@ -110,6 +111,7 @@ def update_excel():
         
         new_row = pd.DataFrame({
             'Timestamp': [timestamp],
+            'Day': [day],
             'Gym': [gym['name']],
             'Count': [count],
             'Capacity': [capacity],
